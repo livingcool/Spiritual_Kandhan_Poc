@@ -34,7 +34,7 @@ export default function Home() {
           <ChatInterface />
 
           <footer className="mt-8 text-center text-orange-900/40 text-sm">
-            <p>© 2025 Spiritual Kandhan Platform. All rights reserved.</p>
+            <p>© 2025 Kandhan-Karunai. All rights reserved.</p>
           </footer>
         </div>
       </div>
