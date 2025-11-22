@@ -30,23 +30,23 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 className="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(251,146,60,0.2)] max-w-md w-full p-8 border border-orange-500/30"
             >
-                <h2 className="text-2xl font-bold text-orange-100 mb-2 text-center">வணக்கம் 🙏</h2>
+                <h2 className="text-2xl font-bold text-orange-100 mb-2 text-center">Welcome 🙏</h2>
                 <p className="text-orange-200/60 text-center mb-6">
-                    உங்களை நன்கு புரிந்து கொள்ள சில தகவல்கள் தேவை
+                    Please provide some basic information to get started
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-orange-200/80 mb-2">
                             <User className="inline w-4 h-4 mr-1 text-orange-400" />
-                            பெயர் (Name)
+                            Name
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full px-4 py-2 bg-slate-800/50 border border-orange-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-orange-50 placeholder-orange-500/20 transition-all"
-                            placeholder="உங்கள் பெயர்"
+                            placeholder="Name"
                             required
                         />
                     </div>
@@ -54,14 +54,14 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                     <div>
                         <label className="block text-sm font-medium text-orange-200/80 mb-2">
                             <Calendar className="inline w-4 h-4 mr-1 text-orange-400" />
-                            வயது (Age)
+                            Age
                         </label>
                         <input
                             type="number"
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
                             className="w-full px-4 py-2 bg-slate-800/50 border border-orange-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-orange-50 placeholder-orange-500/20 transition-all"
-                            placeholder="உங்கள் வயது"
+                            placeholder="Age"
                             min="1"
                             max="120"
                             required
@@ -71,7 +71,7 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                     <div>
                         <label className="block text-sm font-medium text-orange-200/80 mb-2">
                             <Mail className="inline w-4 h-4 mr-1 text-orange-400" />
-                            மின்னஞ்சல் (Email)
+                            Email
                         </label>
                         <input
                             type="email"
@@ -87,12 +87,12 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                         type="submit"
                         className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-semibold hover:shadow-[0_0_20px_rgba(251,146,60,0.4)] transition-all transform hover:scale-105 border border-orange-500/30"
                     >
-                        தொடங்குவோம் (Let's Begin)
+                        Let's Begin
                     </button>
                 </form>
 
                 <p className="text-xs text-orange-500/50 text-center mt-4">
-                    உங்கள் தகவல்கள் பாதுகாப்பாக சேமிக்கப்படும்
+                    Your information is stored securely
                 </p>
             </motion.div>
         </div>
