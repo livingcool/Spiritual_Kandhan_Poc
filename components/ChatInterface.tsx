@@ -4,10 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConsentModal from './ConsentModal';
+import UserInfoForm from './UserInfoForm';
+import { supabase } from '@/lib/supabase';
 
 type Message = {
     role: 'user' | 'model';
     content: string;
+};
+
+type UserInfo = {
+    id?: string;
+    name: string;
+    age: number;
+    email: string;
 };
 
 export default function ChatInterface() {
@@ -18,6 +27,8 @@ export default function ChatInterface() {
     const [hasStarted, setHasStarted] = useState(false);
     const [showConsent, setShowConsent] = useState(false);
     const [hasConsent, setHasConsent] = useState(false);
+    const [showUserForm, setShowUserForm] = useState(false);
+    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -27,11 +38,18 @@ export default function ChatInterface() {
         scrollToBottom();
     }, [messages]);
 
-    // Check consent on mount
+    // Check consent and user info on mount
     useEffect(() => {
         const consent = localStorage.getItem('kandhan_consent');
+        const storedUserInfo = localStorage.getItem('kandhan_user_info');
+
         if (consent === 'true') {
             setHasConsent(true);
+            if (storedUserInfo) {
+                setUserInfo(JSON.parse(storedUserInfo));
+            } else {
+                setShowUserForm(true);
+            }
         } else {
             setShowConsent(true);
         }
@@ -41,11 +59,62 @@ export default function ChatInterface() {
         localStorage.setItem('kandhan_consent', 'true');
         setHasConsent(true);
         setShowConsent(false);
+        setShowUserForm(true); // Show user form after consent
     };
 
     const handleDeclineConsent = () => {
         setShowConsent(false);
-        // Optionally redirect or show a message
+    };
+
+    const handleUserInfoSubmit = async (data: { name: string; age: number; email: string }) => {
+        try {
+            // Check if user exists
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', data.email)
+                .single();
+
+            let userId;
+            if (existingUser) {
+                userId = existingUser.id;
+                setUserInfo({ ...data, id: userId });
+            } else {
+                // Create new user
+                const { data: newUser, error } = await supabase
+                    .from('users')
+                    .insert([data])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                userId = newUser.id;
+                setUserInfo({ ...data, id: userId });
+            }
+
+            localStorage.setItem('kandhan_user_info', JSON.stringify({ ...data, id: userId }));
+            setShowUserForm(false);
+        } catch (error) {
+            console.error('Failed to save user info:', error);
+            alert('Failed to save user information. Please try again.');
+        }
+    };
+
+    const saveConversationToSupabase = async (userMsg: string, modelMsg: string, tokenData: any) => {
+        if (!userInfo?.id) return;
+
+        try {
+            await supabase.from('conversations').insert([{
+                user_id: userInfo.id,
+                user_message: userMsg,
+                model_response: modelMsg,
+                prompt_tokens: tokenData?.promptTokens || 0,
+                candidates_tokens: tokenData?.candidatesTokens || 0,
+                total_tokens: tokenData?.totalTokens || 0,
+            }]);
+        } catch (error) {
+            console.error('Failed to save conversation to Supabase:', error);
+        }
     };
 
     const logConversation = async (userMsg: string, modelMsg: string) => {
@@ -127,8 +196,10 @@ export default function ChatInterface() {
             const data = await response.json();
             if (data.text) {
                 setMessages((prev) => [...prev, { role: 'model', content: data.text }]);
-                // Log conversation for model training
+                // Log conversation for model training (local file)
                 await logConversation(userMessage, data.text);
+                // Save to Supabase database
+                await saveConversationToSupabase(userMessage, data.text, data.tokenUsage);
             }
         } catch (error) {
             console.error('Error sending message:', error);
@@ -241,6 +312,12 @@ export default function ChatInterface() {
                 isOpen={showConsent}
                 onAccept={handleAcceptConsent}
                 onDecline={handleDeclineConsent}
+            />
+
+            {/* User Info Form */}
+            <UserInfoForm
+                isOpen={showUserForm}
+                onSubmit={handleUserInfoSubmit}
             />
         </div>
     );
