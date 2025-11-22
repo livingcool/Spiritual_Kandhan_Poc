@@ -45,7 +45,7 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
                             placeholder="உங்கள் பெயர்"
                             required
                         />
@@ -60,7 +60,7 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                             type="number"
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
                             placeholder="உங்கள் வயது"
                             min="1"
                             max="120"
@@ -77,7 +77,7 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
                             placeholder="your@email.com"
                             required
                         />
