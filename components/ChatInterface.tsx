@@ -103,24 +103,55 @@ export default function ChatInterface() {
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-transparent">
                 <AnimatePresence>
-                    {messages.map((msg, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                                    ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200'
-                                    : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
-                                    }`}
+                    {messages.map((msg, index) => {
+                        // Parse whisper from model messages (text between asterisks)
+                        const whisperMatch = msg.role === 'model' ? msg.content.match(/\*"([^"]+)"\*/g) : null;
+                        const hasWhisper = whisperMatch && whisperMatch.length > 0;
+                        const mainContent = hasWhisper
+                            ? msg.content.replace(/\*"[^"]+"\*/g, '').trim()
+                            : msg.content;
+                        const whispers = hasWhisper
+                            ? whisperMatch.map(w => w.replace(/\*"|"\*/g, ''))
+                            : [];
+
+                        return (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
-                                <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
-                            </div>
-                        </motion.div>
-                    ))}
+                                <div
+                                    className={`max-w-[85%] rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                                            ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200 p-4'
+                                            : 'bg-gradient-to-br from-white to-orange-50/30 text-gray-800 rounded-tl-none border border-orange-100/50'
+                                        }`}
+                                >
+                                    {msg.role === 'model' ? (
+                                        <>
+                                            <p className="whitespace-pre-wrap font-medium p-4 pb-2">{mainContent}</p>
+                                            {hasWhisper && whispers.map((whisper, idx) => (
+                                                <motion.div
+                                                    key={idx}
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: 0.3 }}
+                                                    className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-400 rounded-r-lg mx-2 mb-2"
+                                                >
+                                                    <p className="text-orange-800 italic font-semibold text-center text-base leading-relaxed">
+                                                        "{whisper}"
+                                                    </p>
+                                                </motion.div>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
                 </AnimatePresence>
                 {isLoading && (
                     <motion.div
