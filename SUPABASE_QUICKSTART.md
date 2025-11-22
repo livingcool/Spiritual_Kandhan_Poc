@@ -33,8 +33,12 @@
 - Re-run the SQL from Step 2
 
 **If you get 406 error:**
-- Tables don't exist in Supabase
-- Follow Step 2 again
+- Tables don't exist OR RLS policies are blocking access
+- First, verify tables exist in Table Editor
+- If tables exist, run `fix_rls.sql` in SQL Editor:
+  - This will disable RLS or create permissive policies
+  - Click Run to execute
+  - Refresh your app and test again
 
 **If user form doesn't save:**
 - Check browser console (F12) for errors

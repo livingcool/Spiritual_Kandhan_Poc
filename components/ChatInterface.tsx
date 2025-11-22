@@ -25,7 +25,7 @@ export default function ChatInterface() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [hasStarted, setHasStarted] = useState(false);
-    const [showConsent, setShowConsent] = useState(false);
+    const [showConsent, setShowConsent] = useState(true); // Start with consent modal open
     const [hasConsent, setHasConsent] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -38,82 +38,112 @@ export default function ChatInterface() {
         scrollToBottom();
     }, [messages]);
 
-    // Check consent and user info on mount
+    // Check for existing user info on mount
     useEffect(() => {
-        const consent = localStorage.getItem('kandhan_consent');
         const storedUserInfo = localStorage.getItem('kandhan_user_info');
-
-        if (consent === 'true') {
-            setHasConsent(true);
-            if (storedUserInfo) {
-                setUserInfo(JSON.parse(storedUserInfo));
-            } else {
-                setShowUserForm(true);
+        if (storedUserInfo) {
+            try {
+                const parsed = JSON.parse(storedUserInfo);
+                setUserInfo(parsed);
+                console.log('✅ Loaded user info from localStorage:', parsed);
+            } catch (error) {
+                console.error('❌ Failed to parse stored user info:', error);
             }
-        } else {
-            setShowConsent(true);
         }
     }, []);
 
     const handleAcceptConsent = () => {
-        localStorage.setItem('kandhan_consent', 'true');
         setHasConsent(true);
         setShowConsent(false);
-        setShowUserForm(true); // Show user form after consent
+        setShowUserForm(true); // Show user form after accepting consent
     };
 
     const handleDeclineConsent = () => {
+        setHasConsent(false);
         setShowConsent(false);
+        alert('You must accept the consent to use this application.');
     };
 
     const handleUserInfoSubmit = async (data: { name: string; age: number; email: string }) => {
+        console.log('🔵 Submitting user info:', data);
         try {
             // Check if user exists
-            const { data: existingUser } = await supabase
+            console.log('🔍 Checking if user exists...');
+            const { data: existingUser, error: selectError } = await supabase
                 .from('users')
                 .select('*')
                 .eq('email', data.email)
                 .single();
 
+            if (selectError && selectError.code !== 'PGRST116') {
+                // PGRST116 means no rows returned, which is fine
+                console.error('❌ Error checking user:', selectError);
+                throw selectError;
+            }
+
             let userId;
             if (existingUser) {
+                console.log('✅ User exists:', existingUser.id);
                 userId = existingUser.id;
                 setUserInfo({ ...data, id: userId });
             } else {
                 // Create new user
+                console.log('➕ Creating new user...');
                 const { data: newUser, error } = await supabase
                     .from('users')
                     .insert([data])
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error creating user:', error);
+                    throw error;
+                }
+                console.log('✅ User created:', newUser.id);
                 userId = newUser.id;
                 setUserInfo({ ...data, id: userId });
             }
 
             localStorage.setItem('kandhan_user_info', JSON.stringify({ ...data, id: userId }));
             setShowUserForm(false);
-        } catch (error) {
-            console.error('Failed to save user info:', error);
-            alert('Failed to save user information. Please try again.');
+            console.log('✅ User info saved successfully!');
+        } catch (error: any) {
+            console.error('❌ Failed to save user info:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            });
+            alert(`Failed to save user information: ${error.message}\n\nPlease check:\n1. Tables are created in Supabase\n2. RLS is disabled\n3. Browser console for details`);
         }
     };
 
     const saveConversationToSupabase = async (userMsg: string, modelMsg: string, tokenData: any) => {
-        if (!userInfo?.id) return;
+        if (!userInfo?.id) {
+            console.warn('⚠️ No user ID, skipping Supabase save');
+            return;
+        }
 
+        console.log('💾 Saving conversation to Supabase...');
         try {
-            await supabase.from('conversations').insert([{
+            const { data, error } = await supabase.from('conversations').insert([{
                 user_id: userInfo.id,
                 user_message: userMsg,
                 model_response: modelMsg,
                 prompt_tokens: tokenData?.promptTokens || 0,
                 candidates_tokens: tokenData?.candidatesTokens || 0,
                 total_tokens: tokenData?.totalTokens || 0,
-            }]);
-        } catch (error) {
-            console.error('Failed to save conversation to Supabase:', error);
+            }]).select();
+
+            if (error) {
+                console.error('❌ Supabase save error:', error);
+                throw error;
+            }
+            console.log('✅ Conversation saved to Supabase:', data);
+        } catch (error: any) {
+            console.error('❌ Failed to save conversation to Supabase:', error);
+            console.error('Error details:', error.message);
         }
     };
 
@@ -138,7 +168,7 @@ export default function ChatInterface() {
     // Fetch mandatory starter on mount if not already present
     useEffect(() => {
         const fetchStarter = async () => {
-            if (hasStarted || !hasConsent) return;
+            if (hasStarted || !hasConsent || !userInfo) return;
 
             try {
                 setIsLoading(true);
@@ -164,7 +194,7 @@ export default function ChatInterface() {
         };
 
         fetchStarter();
-    }, [hasStarted, hasConsent]);
+    }, [hasStarted, hasConsent, userInfo]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -203,7 +233,10 @@ export default function ChatInterface() {
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            // Optionally handle error in UI
+            setMessages((prev) => [...prev, {
+                role: 'model',
+                content: 'Sorry, I encountered an error. Please try again.'
+            }]);
         } finally {
             setIsLoading(false);
         }
@@ -295,11 +328,11 @@ export default function ChatInterface() {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="உங்கள் மனதை திறங்கள்... (Pour your heart out...)"
                         className="w-full bg-white/80 text-gray-800 placeholder-gray-500 rounded-full py-3 pl-6 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-inner transition-all"
-                        disabled={isLoading}
+                        disabled={isLoading || !userInfo}
                     />
                     <button
                         type="submit"
-                        disabled={!input.trim() || isLoading}
+                        disabled={!input.trim() || isLoading || !userInfo}
                         className="absolute right-2 p-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
                     >
                         <Send className="w-5 h-5" />
