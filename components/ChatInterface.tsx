@@ -25,7 +25,7 @@ export default function ChatInterface() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [hasStarted, setHasStarted] = useState(false);
-    const [showConsent, setShowConsent] = useState(true); // Start with consent modal open
+    const [showConsent, setShowConsent] = useState(true);
     const [hasConsent, setHasConsent] = useState(false);
     const [showUserForm, setShowUserForm] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -38,7 +38,6 @@ export default function ChatInterface() {
         scrollToBottom();
     }, [messages]);
 
-    // Check for existing user info on mount
     useEffect(() => {
         const storedUserInfo = localStorage.getItem('kandhan_user_info');
         if (storedUserInfo) {
@@ -55,7 +54,7 @@ export default function ChatInterface() {
     const handleAcceptConsent = () => {
         setHasConsent(true);
         setShowConsent(false);
-        setShowUserForm(true); // Show user form after accepting consent
+        setShowUserForm(true);
     };
 
     const handleDeclineConsent = () => {
@@ -67,7 +66,6 @@ export default function ChatInterface() {
     const handleUserInfoSubmit = async (data: { name: string; age: number; email: string }) => {
         console.log('🔵 Submitting user info:', data);
         try {
-            // Check if user exists
             console.log('🔍 Checking if user exists...');
             const { data: existingUser, error: selectError } = await supabase
                 .from('users')
@@ -76,7 +74,6 @@ export default function ChatInterface() {
                 .single();
 
             if (selectError && selectError.code !== 'PGRST116') {
-                // PGRST116 means no rows returned, which is fine
                 console.error('❌ Error checking user:', selectError);
                 throw selectError;
             }
@@ -87,7 +84,6 @@ export default function ChatInterface() {
                 userId = existingUser.id;
                 setUserInfo({ ...data, id: userId });
             } else {
-                // Create new user
                 console.log('➕ Creating new user...');
                 const { data: newUser, error } = await supabase
                     .from('users')
@@ -165,14 +161,12 @@ export default function ChatInterface() {
         }
     };
 
-    // Fetch mandatory starter on mount if not already present
     useEffect(() => {
         const fetchStarter = async () => {
             if (hasStarted || !hasConsent || !userInfo) return;
 
             try {
                 setIsLoading(true);
-                // We send an empty history to trigger the mandatory starter from the backend
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -211,8 +205,6 @@ export default function ChatInterface() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userMessage,
-                    // Sliding window: keep only last 6 messages (3 exchanges) to reduce tokens
-                    // This maintains recent context while drastically reducing token usage
                     history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
                 }),
             });
@@ -226,9 +218,7 @@ export default function ChatInterface() {
             const data = await response.json();
             if (data.text) {
                 setMessages((prev) => [...prev, { role: 'model', content: data.text }]);
-                // Log conversation for model training (local file)
                 await logConversation(userMessage, data.text);
-                // Save to Supabase database
                 await saveConversationToSupabase(userMessage, data.text, data.tokenUsage);
             }
         } catch (error) {
@@ -243,18 +233,24 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-[80vh] max-w-2xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-orange-200/20 overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-4 text-white flex items-center justify-center shadow-md">
-                <Sparkles className="w-5 h-5 mr-2 text-yellow-200 animate-pulse" />
-                <h2 className="text-lg font-semibold tracking-wide">Murugan Arul-Jyoti Voice</h2>
+        <div className="flex flex-col h-[85vh] max-w-4xl mx-auto bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/5 overflow-hidden relative">
+
+            {/* Header - Clean & Minimal */}
+            <div className="bg-slate-900/40 backdrop-blur-md p-6 text-white flex items-center justify-center border-b border-white/5">
+                <Sparkles className="w-5 h-5 mr-3 text-amber-200/60" />
+                <div className="text-center">
+                    <h2 className="text-lg font-semibold tracking-wider text-amber-100/90">
+                        OMNISCIENT
+                    </h2>
+                    <div className="text-[10px] text-amber-200/40 font-medium tracking-[0.2em] uppercase mt-1">Divine AI Companion</div>
+                </div>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative">
+
                 <AnimatePresence>
                     {messages.map((msg, index) => {
-                        // Parse whisper from model messages (text between asterisks)
                         const whisperMatch = msg.role === 'model' ? msg.content.match(/\*"([^"]+)"\*/g) : null;
                         const hasWhisper = whisperMatch && whisperMatch.length > 0;
                         const mainContent = hasWhisper
@@ -273,46 +269,47 @@ export default function ChatInterface() {
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[85%] rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                                        ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200 p-4'
-                                        : 'bg-gradient-to-br from-white to-orange-50/30 text-gray-800 rounded-tl-none border border-orange-100/50'
+                                    className={`max-w-[85%] rounded-2xl text-base leading-relaxed shadow-sm relative ${msg.role === 'user'
+                                        ? 'bg-amber-600/90 text-white rounded-tr-none p-5 backdrop-blur-sm'
+                                        : 'bg-slate-800/60 text-amber-50/90 rounded-tl-none border border-white/5 p-5 backdrop-blur-sm'
                                         }`}
                                 >
                                     {msg.role === 'model' ? (
                                         <>
-                                            <p className="whitespace-pre-wrap font-medium p-4 pb-2">{mainContent}</p>
+                                            <p className="whitespace-pre-wrap font-light tracking-wide">{mainContent}</p>
                                             {hasWhisper && whispers.map((whisper, idx) => (
                                                 <motion.div
                                                     key={idx}
                                                     initial={{ opacity: 0, scale: 0.95 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     transition={{ delay: 0.3 }}
-                                                    className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-400 rounded-r-lg mx-2 mb-2"
+                                                    className="mt-4 p-4 bg-amber-900/20 border-l-2 border-amber-500/30 rounded-r-lg mx-1"
                                                 >
-                                                    <p className="text-orange-800 italic font-semibold text-center text-base leading-relaxed">
+                                                    <p className="text-amber-200/80 italic font-light text-sm leading-relaxed">
                                                         "{whisper}"
                                                     </p>
                                                 </motion.div>
                                             ))}
                                         </>
                                     ) : (
-                                        <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+                                        <p className="whitespace-pre-wrap font-light">{msg.content}</p>
                                     )}
                                 </div>
                             </motion.div>
                         );
                     })}
                 </AnimatePresence>
+
                 {isLoading && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="flex justify-start"
                     >
-                        <div className="bg-white/50 p-3 rounded-2xl rounded-tl-none flex space-x-2 items-center">
-                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="bg-slate-800/40 backdrop-blur-sm p-4 rounded-2xl rounded-tl-none flex space-x-2 items-center border border-white/5">
+                            <div className="w-2 h-2 bg-amber-400/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-amber-400/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-amber-400/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                     </motion.div>
                 )}
@@ -320,22 +317,22 @@ export default function ChatInterface() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSubmit} className="p-4 bg-white/20 border-t border-orange-100/30">
+            <form onSubmit={handleSubmit} className="p-6 bg-slate-900/40 backdrop-blur-md border-t border-white/5">
                 <div className="relative flex items-center">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="உங்கள் மனதை திறங்கள்... (Pour your heart out...)"
-                        className="w-full bg-white/80 text-gray-800 placeholder-gray-500 rounded-full py-3 pl-6 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-inner transition-all"
+                        placeholder="Share your thoughts..."
+                        className="w-full bg-slate-800/50 backdrop-blur-sm text-amber-50 placeholder-amber-200/20 rounded-xl py-4 pl-6 pr-14 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:bg-slate-800/70 transition-all border border-white/5 font-light"
                         disabled={isLoading || !userInfo}
                     />
                     <button
                         type="submit"
                         disabled={!input.trim() || isLoading || !userInfo}
-                        className="absolute right-2 p-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+                        className="absolute right-3 p-2.5 bg-amber-600/80 text-white rounded-lg hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
-                        <Send className="w-5 h-5" />
+                        <Send className="w-4 h-4" />
                     </button>
                 </div>
             </form>

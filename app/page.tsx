@@ -3,41 +3,52 @@ import VelAnimation from '@/components/VelAnimation';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-100 via-orange-50 to-white flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Elements for Spiritual Ambiance */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-orange-300/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-[10%] right-[10%] w-[30%] h-[30%] bg-yellow-200/30 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute bottom-[10%] left-[20%] w-[40%] h-[40%] bg-amber-100/40 rounded-full blur-3xl animate-pulse delay-2000" />
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-stone-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Soft Ambient Background - Pleasant & Calm */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Warm, soft gradient orbs - greatly reduced intensity */}
+        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-amber-900/20 rounded-full blur-[120px]" />
+        <div className="absolute top-[20%] -right-[10%] w-[60%] h-[60%] bg-orange-900/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-[10%] left-[30%] w-[50%] h-[50%] bg-yellow-900/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-        {/* Left Side: 3D Vel Animation */}
-        <div className="hidden md:block">
-          <VelAnimation />
+      {/* Main Content Grid */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Left Vel Animation */}
+        <div className="hidden lg:block flex-shrink-0">
+          <VelAnimation side="left" />
         </div>
 
-        {/* Right Side: Chat Interface */}
-        <div className="w-full max-w-2xl">
+        {/* Center Chat Interface */}
+        <div className="flex-1 w-full max-w-4xl mx-auto">
+          {/* Header - Simple & Elegant */}
           <div className="text-center mb-8">
-            <div className="md:hidden mb-4 flex justify-center">
-              <VelAnimation />
+            <div className="relative inline-block mb-3">
+              <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-200 to-amber-200 drop-shadow-sm tracking-tight">
+                OMNISCIENT
+              </h1>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600 mb-2 drop-shadow-sm">
-              Kandhan-Karunai
-            </h1>
-            <p className="text-orange-800/70 text-lg font-medium italic">
-              "Let the inner voice guide you..."
+            <p className="text-orange-100/60 text-lg font-light tracking-wide mb-2">
+              Manifested from Murugan’s belief in you - Omniscient
             </p>
+            <div className="flex items-center justify-center gap-2 text-amber-200/40 text-sm">
+              <span className="w-1.5 h-1.5 bg-amber-400/60 rounded-full" />
+              <span>Powered by Omniscient</span>
+              <span className="w-1.5 h-1.5 bg-amber-400/60 rounded-full" />
+            </div>
           </div>
 
           <ChatInterface />
+        </div>
 
-          <footer className="mt-8 text-center text-orange-900/40 text-sm">
-            <p>© 2025 Kandhan-Karunai. All rights reserved.</p>
-          </footer>
+        {/* Right Vel Animation */}
+        <div className="hidden lg:block flex-shrink-0">
+          <VelAnimation side="right" />
         </div>
       </div>
+
+      {/* Very subtle bottom accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
     </main>
   );
 }

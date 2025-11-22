@@ -28,39 +28,39 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-orange-200"
+                className="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(251,146,60,0.2)] max-w-md w-full p-8 border border-orange-500/30"
             >
-                <h2 className="text-2xl font-bold text-orange-900 mb-2 text-center">வணக்கம் 🙏</h2>
-                <p className="text-gray-600 text-center mb-6">
+                <h2 className="text-2xl font-bold text-orange-100 mb-2 text-center">வணக்கம் 🙏</h2>
+                <p className="text-orange-200/60 text-center mb-6">
                     உங்களை நன்கு புரிந்து கொள்ள சில தகவல்கள் தேவை
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <User className="inline w-4 h-4 mr-1" />
+                        <label className="block text-sm font-medium text-orange-200/80 mb-2">
+                            <User className="inline w-4 h-4 mr-1 text-orange-400" />
                             பெயர் (Name)
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
+                            className="w-full px-4 py-2 bg-slate-800/50 border border-orange-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-orange-50 placeholder-orange-500/20 transition-all"
                             placeholder="உங்கள் பெயர்"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="inline w-4 h-4 mr-1" />
+                        <label className="block text-sm font-medium text-orange-200/80 mb-2">
+                            <Calendar className="inline w-4 h-4 mr-1 text-orange-400" />
                             வயது (Age)
                         </label>
                         <input
                             type="number"
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
+                            className="w-full px-4 py-2 bg-slate-800/50 border border-orange-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-orange-50 placeholder-orange-500/20 transition-all"
                             placeholder="உங்கள் வயது"
                             min="1"
                             max="120"
@@ -69,15 +69,15 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Mail className="inline w-4 h-4 mr-1" />
+                        <label className="block text-sm font-medium text-orange-200/80 mb-2">
+                            <Mail className="inline w-4 h-4 mr-1 text-orange-400" />
                             மின்னஞ்சல் (Email)
                         </label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 placeholder-gray-400"
+                            className="w-full px-4 py-2 bg-slate-800/50 border border-orange-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-orange-50 placeholder-orange-500/20 transition-all"
                             placeholder="your@email.com"
                             required
                         />
@@ -85,13 +85,13 @@ export default function UserInfoForm({ isOpen, onSubmit }: UserInfoFormProps) {
 
                     <button
                         type="submit"
-                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                        className="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg font-semibold hover:shadow-[0_0_20px_rgba(251,146,60,0.4)] transition-all transform hover:scale-105 border border-orange-500/30"
                     >
                         தொடங்குவோம் (Let's Begin)
                     </button>
                 </form>
 
-                <p className="text-xs text-gray-500 text-center mt-4">
+                <p className="text-xs text-orange-500/50 text-center mt-4">
                     உங்கள் தகவல்கள் பாதுகாப்பாக சேமிக்கப்படும்
                 </p>
             </motion.div>
