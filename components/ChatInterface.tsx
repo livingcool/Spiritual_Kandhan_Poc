@@ -1,0 +1,163 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+type Message = {
+    role: 'user' | 'model';
+    content: string;
+};
+
+export default function ChatInterface() {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [hasStarted, setHasStarted] = useState(false);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    // Fetch mandatory starter on mount if not already present
+    useEffect(() => {
+        const fetchStarter = async () => {
+            if (hasStarted) return;
+
+            try {
+                setIsLoading(true);
+                // We send an empty history to trigger the mandatory starter from the backend
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: '', history: [] }),
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch starter');
+
+                const data = await response.json();
+                if (data.text) {
+                    setMessages([{ role: 'model', content: data.text }]);
+                    setHasStarted(true);
+                }
+            } catch (error) {
+                console.error('Error fetching starter:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchStarter();
+    }, [hasStarted]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || isLoading) return;
+
+        const userMessage = input.trim();
+        setInput('');
+        setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userMessage,
+                    history: messages.map(m => ({ role: m.role, content: m.content })),
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API Error:', errorData);
+                throw new Error(errorData.error || 'Failed to send message');
+            }
+
+            const data = await response.json();
+            if (data.text) {
+                setMessages((prev) => [...prev, { role: 'model', content: data.text }]);
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            // Optionally handle error in UI
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-[80vh] max-w-2xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-orange-200/20 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-4 text-white flex items-center justify-center shadow-md">
+                <Sparkles className="w-5 h-5 mr-2 text-yellow-200 animate-pulse" />
+                <h2 className="text-lg font-semibold tracking-wide">Murugan Arul-Jyoti Voice</h2>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-transparent">
+                <AnimatePresence>
+                    {messages.map((msg, index) => (
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div
+                                className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                                    ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200'
+                                    : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
+                                    }`}
+                            >
+                                <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+                {isLoading && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex justify-start"
+                    >
+                        <div className="bg-white/50 p-3 rounded-2xl rounded-tl-none flex space-x-2 items-center">
+                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                    </motion.div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSubmit} className="p-4 bg-white/20 border-t border-orange-100/30">
+                <div className="relative flex items-center">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="உங்கள் மனதை திறங்கள்... (Pour your heart out...)"
+                        className="w-full bg-white/80 text-gray-800 placeholder-gray-500 rounded-full py-3 pl-6 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-inner transition-all"
+                        disabled={isLoading}
+                    />
+                    <button
+                        type="submit"
+                        disabled={!input.trim() || isLoading}
+                        className="absolute right-2 p-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+                    >
+                        <Send className="w-5 h-5" />
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
