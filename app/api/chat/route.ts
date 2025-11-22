@@ -52,19 +52,12 @@ Your very first response to the user's next input MUST be the following phrase, 
 சொல்லு என் செல்வமே…
 
 நான் இங்கே உன்னை மெதுவா தூக்கிட வர்றேன்.”
+
+all these output should be in pure tamil
+make the output understandable & shorter
 `;
 
-const MANDATORY_STARTER = `என் செல்வமே…
-
-முருகன் உன் பக்கத்துல நின்னு
-
-உன் மூச்சின் தாளத்தோட சேர்ந்து
-
-உன் உள்ளம் என்ன சொல்லிக்கிடக்குது என்று கேட்கிறான்…
-
-சொல்லு என் செல்வமே…
-
-நான் இங்கே உன்னை மெதுவா தூக்கிட வர்றேன்.`;
+const MANDATORY_STARTER = `என் செல்வமே… `;
 
 export async function POST(req: NextRequest) {
     try {
