@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConsentModal from './ConsentModal';
 
 type Message = {
     role: 'user' | 'model';
@@ -15,6 +16,8 @@ export default function ChatInterface() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [hasStarted, setHasStarted] = useState(false);
+    const [showConsent, setShowConsent] = useState(false);
+    const [hasConsent, setHasConsent] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,10 +27,49 @@ export default function ChatInterface() {
         scrollToBottom();
     }, [messages]);
 
+    // Check consent on mount
+    useEffect(() => {
+        const consent = localStorage.getItem('kandhan_consent');
+        if (consent === 'true') {
+            setHasConsent(true);
+        } else {
+            setShowConsent(true);
+        }
+    }, []);
+
+    const handleAcceptConsent = () => {
+        localStorage.setItem('kandhan_consent', 'true');
+        setHasConsent(true);
+        setShowConsent(false);
+    };
+
+    const handleDeclineConsent = () => {
+        setShowConsent(false);
+        // Optionally redirect or show a message
+    };
+
+    const logConversation = async (userMsg: string, modelMsg: string) => {
+        if (!hasConsent) return;
+
+        try {
+            await fetch('/api/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userMessage: userMsg,
+                    modelResponse: modelMsg,
+                    timestamp: new Date().toISOString(),
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to log conversation:', error);
+        }
+    };
+
     // Fetch mandatory starter on mount if not already present
     useEffect(() => {
         const fetchStarter = async () => {
-            if (hasStarted) return;
+            if (hasStarted || !hasConsent) return;
 
             try {
                 setIsLoading(true);
@@ -53,7 +95,7 @@ export default function ChatInterface() {
         };
 
         fetchStarter();
-    }, [hasStarted]);
+    }, [hasStarted, hasConsent]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +112,9 @@ export default function ChatInterface() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userMessage,
-                    history: messages.map(m => ({ role: m.role, content: m.content })),
+                    // Sliding window: keep only last 6 messages (3 exchanges) to reduce tokens
+                    // This maintains recent context while drastically reducing token usage
+                    history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
                 }),
             });
 
@@ -83,6 +127,8 @@ export default function ChatInterface() {
             const data = await response.json();
             if (data.text) {
                 setMessages((prev) => [...prev, { role: 'model', content: data.text }]);
+                // Log conversation for model training
+                await logConversation(userMessage, data.text);
             }
         } catch (error) {
             console.error('Error sending message:', error);
@@ -124,8 +170,8 @@ export default function ChatInterface() {
                             >
                                 <div
                                     className={`max-w-[85%] rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                                            ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200 p-4'
-                                            : 'bg-gradient-to-br from-white to-orange-50/30 text-gray-800 rounded-tl-none border border-orange-100/50'
+                                        ? 'bg-orange-100 text-orange-900 rounded-tr-none border border-orange-200 p-4'
+                                        : 'bg-gradient-to-br from-white to-orange-50/30 text-gray-800 rounded-tl-none border border-orange-100/50'
                                         }`}
                                 >
                                     {msg.role === 'model' ? (
@@ -189,6 +235,13 @@ export default function ChatInterface() {
                     </button>
                 </div>
             </form>
+
+            {/* Consent Modal */}
+            <ConsentModal
+                isOpen={showConsent}
+                onAccept={handleAcceptConsent}
+                onDecline={handleDeclineConsent}
+            />
         </div>
     );
 }
