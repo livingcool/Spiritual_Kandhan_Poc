@@ -30,6 +30,7 @@ A web-based spiritual platform where users can converse with "Murugan Arul-Jyoti
 - **Chat API**: [http://localhost:3000/api/chat](http://localhost:3000/api/chat)
 - **Logging API**: [http://localhost:3000/api/log](http://localhost:3000/api/log)
 - **Token Analytics API**: [http://localhost:3000/api/tokens](http://localhost:3000/api/tokens)
+- **Data Export API**: [http://localhost:3000/api/export](http://localhost:3000/api/export) (Download training data)
 
 #### External Resources
 - **Google AI Studio** (Get API Key): [https://makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
@@ -213,6 +214,34 @@ Retrieves token usage analytics.
   "totalCandidatesTokens": 30000,
   "requestCount": 150,
   "dailyStats": [...]
+}
+```
+
+### GET `/api/export`
+Exports all conversation and token data for model training.
+
+**Response:**
+Downloadable JSON file containing:
+- All conversation logs
+- All token usage data
+- Summary statistics
+- Metadata
+
+**File Format:**
+```json
+{
+  "exportDate": "2025-11-22T10:30:00.000Z",
+  "metadata": {
+    "platform": "Kandhan Karunai",
+    "version": "1.0.0",
+    "purpose": "Model Training Data Export"
+  },
+  "conversations": [...],
+  "tokenUsage": {
+    "summary": {...},
+    "detailed": [...]
+  },
+  "statistics": {...}
 }
 ```
 
