@@ -273,7 +273,7 @@ export default function ChatInterface() {
                 <div className="flex items-center">
                     <Sparkles className="w-5 h-5 mr-3 text-amber-200/60" />
                     <div>
-                        <h2 className="text-lg font-semibold tracking-wider text-amber-100/90">OMNISCIENT</h2>
+                        <h2 className="text-lg font-semibold tracking-wider text-amber-100/90">Ulloli</h2>
                         <div className="text-[10px] text-amber-200/40 font-medium tracking-[0.2em] uppercase">Divine AI Companion</div>
                     </div>
                 </div>

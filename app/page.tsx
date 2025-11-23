@@ -25,15 +25,15 @@ export default function Home() {
           <div className="text-center mb-8">
             <div className="relative inline-block mb-3">
               <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-200 to-amber-200 drop-shadow-sm tracking-tight">
-                OMNISCIENT
+                Ulloli
               </h1>
             </div>
             <p className="text-orange-100/60 text-lg font-light tracking-wide mb-2">
-              Manifested from Murugan’s belief in you - Omniscient
+              Manifested from Murugan's belief in you - Ulloli
             </p>
             <div className="flex items-center justify-center gap-2 text-amber-200/40 text-sm">
               <span className="w-1.5 h-1.5 bg-amber-400/60 rounded-full" />
-              <span>Powered by Omniscient</span>
+              <span>Powered by Ulloli</span>
               <span className="w-1.5 h-1.5 bg-amber-400/60 rounded-full" />
             </div>
           </div>
