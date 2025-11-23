@@ -138,7 +138,11 @@ export default function ChatInterface() {
     // Fetch Starter Message
     useEffect(() => {
         const fetchStarter = async () => {
-            if (hasStarted || showConsent) return;
+            if (showConsent) return;
+
+            // Only fetch/refresh starter if we haven't started OR if it's just the initial greeting (refreshing language)
+            // If the user has sent a message (messages.length > 1), do NOT fetch a new starter.
+            if (messages.length > 1) return;
 
             try {
                 setIsLoading(true);
@@ -163,7 +167,7 @@ export default function ChatInterface() {
         };
 
         fetchStarter();
-    }, [hasStarted, showConsent]);
+    }, [showConsent, language]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -196,6 +200,33 @@ export default function ChatInterface() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
+            let accumulatedResponse = '';
+
+            // Add an empty model message to start streaming into
+            setMessages((prev) => [...prev, { role: 'model', content: '' }]);
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+
+                if (value) {
+                    const chunkValue = decoder.decode(value, { stream: true });
+                    accumulatedResponse += chunkValue;
+
+                    setMessages((prev) => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage.role === 'model') {
+                            lastMessage.content = accumulatedResponse;
+                        }
+                        return newMessages;
+                    });
+                }
+            }
+
+            // After streaming is complete, save to DB
+            await logConversation(userMessage, accumulatedResponse);
+            await saveConversationToSupabase(userMessage, accumulatedResponse, {}); // Token usage not available in stream yet
 
         } catch (error) {
             console.error('Error sending message:', error);
