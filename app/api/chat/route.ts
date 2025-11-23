@@ -371,7 +371,17 @@ export async function POST(req: NextRequest) {
 
         const result = await chat.sendMessage(message);
         const response = await result.response;
-        let text = response.text();
+
+        // Log the full response details for debugging
+        console.log('Gemini Finish Reason:', response.candidates?.[0]?.finishReason);
+        console.log('Gemini Safety Ratings:', JSON.stringify(response.candidates?.[0]?.safetyRatings, null, 2));
+
+        let text = '';
+        try {
+            text = response.text();
+        } catch (e) {
+            console.error('Error getting text from response:', e);
+        }
 
         // Fallback if text is empty (e.g. safety block that wasn't caught)
         if (!text) {
