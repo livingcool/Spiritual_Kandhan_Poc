@@ -15,10 +15,10 @@ CREATE TABLE users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create conversations table
-CREATE TABLE conversations (
+-- Create conversations table (Updated for Anonymous Support)
+CREATE TABLE IF NOT EXISTS conversations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT, -- Changed from UUID to TEXT to support random IDs
   user_message TEXT NOT NULL,
   model_response TEXT NOT NULL,
   prompt_tokens INTEGER DEFAULT 0,
@@ -26,6 +26,8 @@ CREATE TABLE conversations (
   total_tokens INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Note: We removed the foreign key constraint to users table to allow anonymous chats.
 
 -- Create indexes
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
