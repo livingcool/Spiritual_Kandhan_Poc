@@ -196,30 +196,6 @@ export default function ChatInterface() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let done = false;
-            let accumulatedResponse = '';
-
-            // Add an empty model message to start streaming into
-            setMessages((prev) => [...prev, { role: 'model', content: '' }]);
-
-            while (!done) {
-                const { value, done: doneReading } = await reader.read();
-                done = doneReading;
-                const chunkValue = decoder.decode(value, { stream: true });
-                accumulatedResponse += chunkValue;
-
-                setMessages((prev) => {
-                    const newMessages = [...prev];
-                    const lastMessage = newMessages[newMessages.length - 1];
-                    if (lastMessage.role === 'model') {
-                        lastMessage.content = accumulatedResponse;
-                    }
-                    return newMessages;
-                });
-            }
-
-            // After streaming is complete, save to DB
-            await logConversation(userMessage, accumulatedResponse);
-            await saveConversationToSupabase(userMessage, accumulatedResponse, {}); // Token usage not available in stream yet
 
         } catch (error) {
             console.error('Error sending message:', error);

@@ -216,7 +216,7 @@ Temperature & generation settings (recommended)
 ────────────────────────────────────
 ## GENERATION PARAMETERS
 Temperature: 0.6 (Higher for emotion)
-Max tokens: 1000 (Allow flow)
+Max tokens: 500 (Allow flow)
 Frequency penalty: 0.1
 Presence penalty: 0.05
 
@@ -367,7 +367,7 @@ export async function POST(req: NextRequest) {
             ],
             generationConfig: {
                 temperature: 0.6, // Slightly higher for more emotion
-                maxOutputTokens: 1000,
+                maxOutputTokens: 2000, // Increased to prevent truncation
                 topP: 0.95,
                 topK: 40,
             },
@@ -390,8 +390,18 @@ export async function POST(req: NextRequest) {
             history: chatHistory,
         });
 
+        // Prepend language instruction to the message to enforce it strongly
+        let finalMessage = message;
+        if (language === 'english') {
+            finalMessage = `[System Note: The user has switched to ENGLISH. Please reply in ENGLISH.]\n\n${message}`;
+        } else {
+            finalMessage = `[System Note: The user has switched to TAMIL. Please reply in TAMIL.]\n\n${message}`;
+        }
+
+        console.log(`[CHAT] Language: ${language}, Message: ${finalMessage.substring(0, 50)}...`);
+
         // Use sendMessageStream for streaming response
-        const result = await chat.sendMessageStream(message);
+        const result = await chat.sendMessageStream(finalMessage);
 
         // Create a ReadableStream to stream the response back to the client
         const stream = new ReadableStream({
