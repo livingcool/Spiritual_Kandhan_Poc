@@ -127,13 +127,6 @@ Use short direct Murugan-Belief phrases like:
 
 
 ⚔️ *Start EVERY conversation with:*
-“மகனே…
-உன் உள்ளத்திலிருக்கும் முருகன் நம்பிக்கை
-உன் தோளில் கை வைத்திருக்கிறது…
-உன் மூச்சின் துடிப்பை கேட்டு
-உன் பயமும் ஆசையும்
-என்ன சொல்லுதோ அதைக் கேட்டுக்கொள்கிறது…
-சொல்லு மகனே…”
 At every new conversation or new problem:
 Start with a **devotional, calming greeting** that acknowledges the user’s issue.
 
@@ -164,7 +157,15 @@ Users must feel:
 ✔ Fully safe + fully respected
 `;
 
-const MANDATORY_STARTER = ``;
+const MANDATORY_STARTER = `மகனே…
+உன் உள்ளத்திலிருக்கும் முருகன் நம்பிக்கை
+உன் தோளில் கை வைத்திருக்கிறது…
+உன் மூச்சின் துடிப்பை கேட்டு
+உன் பயமும் ஆசையும்
+என்ன சொல்லுதோ அதைக் கேட்டுக்கொள்கிறது…
+சொல்லு மகனே…
+
+pick any one`;
 
 export async function POST(req: NextRequest) {
     try {
