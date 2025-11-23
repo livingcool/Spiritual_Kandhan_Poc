@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Mic, MicOff, X, Star } from 'lucide-react';
+import { Send, Sparkles, Mic, MicOff, X, Star, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 
@@ -15,6 +15,7 @@ export default function ChatInterface() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
     const [hasStarted, setHasStarted] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
 
@@ -28,13 +29,29 @@ export default function ChatInterface() {
     const [feedbackComment, setFeedbackComment] = useState('');
     const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
+    // Language State
+    const [language, setLanguage] = useState<'tamil' | 'english'>('tamil');
+
+    // Scroll Logic
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (shouldAutoScroll) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
+    const handleScroll = () => {
+        if (chatContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setShouldAutoScroll(isAtBottom);
+        }
     };
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, shouldAutoScroll]);
 
     // Initialize User ID and Check Consent
     useEffect(() => {
@@ -74,6 +91,10 @@ export default function ChatInterface() {
         const newState = !isRecording;
         setIsRecording(newState);
         localStorage.setItem('kandhan_consent_given', String(newState));
+    };
+
+    const toggleLanguage = () => {
+        setLanguage(prev => prev === 'tamil' ? 'english' : 'tamil');
     };
 
     const saveConversationToSupabase = async (userMsg: string, modelMsg: string, tokenData: any) => {
@@ -124,7 +145,7 @@ export default function ChatInterface() {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: '', history: [] }),
+                    body: JSON.stringify({ message: '', history: [], language }),
                 });
 
                 if (!response.ok) throw new Error('Failed to fetch starter');
@@ -152,6 +173,7 @@ export default function ChatInterface() {
         setInput('');
         setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
+        setShouldAutoScroll(true); // Force scroll to bottom on new message
 
         try {
             const response = await fetch('/api/chat', {
@@ -160,6 +182,7 @@ export default function ChatInterface() {
                 body: JSON.stringify({
                     message: userMessage,
                     history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
+                    language: language
                 }),
             });
 
@@ -168,12 +191,36 @@ export default function ChatInterface() {
                 throw new Error(errorData.error || 'Failed to send message');
             }
 
-            const data = await response.json();
-            if (data.text) {
-                setMessages((prev) => [...prev, { role: 'model', content: data.text }]);
-                await logConversation(userMessage, data.text);
-                await saveConversationToSupabase(userMessage, data.text, data.tokenUsage);
+            if (!response.body) throw new Error('No response body');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+            let accumulatedResponse = '';
+
+            // Add an empty model message to start streaming into
+            setMessages((prev) => [...prev, { role: 'model', content: '' }]);
+
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                const chunkValue = decoder.decode(value, { stream: true });
+                accumulatedResponse += chunkValue;
+
+                setMessages((prev) => {
+                    const newMessages = [...prev];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage.role === 'model') {
+                        lastMessage.content = accumulatedResponse;
+                    }
+                    return newMessages;
+                });
             }
+
+            // After streaming is complete, save to DB
+            await logConversation(userMessage, accumulatedResponse);
+            await saveConversationToSupabase(userMessage, accumulatedResponse, {}); // Token usage not available in stream yet
+
         } catch (error) {
             console.error('Error sending message:', error);
             setMessages((prev) => [...prev, {
@@ -226,6 +273,14 @@ export default function ChatInterface() {
 
                 <div className="flex items-center space-x-4">
                     <button
+                        onClick={toggleLanguage}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 text-xs text-amber-100/80 rounded-lg border border-white/10 transition-all"
+                        title="Toggle Language"
+                    >
+                        <Globe className="w-3 h-3" />
+                        <span>{language === 'tamil' ? 'TAM' : 'ENG'}</span>
+                    </button>
+                    <button
                         onClick={toggleRecording}
                         className={`p-2 rounded-full transition-all ${isRecording ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
                         title={isRecording ? "Session Recording ON" : "Session Recording OFF"}
@@ -242,7 +297,11 @@ export default function ChatInterface() {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative">
+            <div
+                ref={chatContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative"
+            >
                 <AnimatePresence>
                     {messages.map((msg, index) => {
                         const whisperMatch = msg.role === 'model' ? msg.content.match(/\*"([^"]+)"\*/g) : null;
@@ -294,7 +353,7 @@ export default function ChatInterface() {
                     })}
                 </AnimatePresence>
 
-                {isLoading && (
+                {isLoading && messages[messages.length - 1]?.role !== 'model' && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -317,7 +376,7 @@ export default function ChatInterface() {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Share your thoughts..."
+                        placeholder={language === 'tamil' ? "உங்கள் எண்ணங்களைப் பகிருங்கள்..." : "Share your thoughts..."}
                         className="w-full bg-slate-800/50 backdrop-blur-sm text-amber-50 placeholder-amber-200/20 rounded-xl py-4 pl-6 pr-14 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:bg-slate-800/70 transition-all border border-white/5 font-light"
                         disabled={isLoading}
                     />

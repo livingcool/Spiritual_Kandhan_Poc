@@ -2,6 +2,8 @@
 -- This will create tables and disable RLS for testing
 
 -- Drop tables if they exist (clean slate)
+DROP TABLE IF EXISTS tone_checks CASCADE;
+DROP TABLE IF EXISTS feedback CASCADE;
 DROP TABLE IF EXISTS conversations CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
@@ -27,18 +29,45 @@ CREATE TABLE IF NOT EXISTS conversations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create feedback table
+CREATE TABLE IF NOT EXISTS feedback (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT, -- Matches conversations.user_id
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  comments TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create tone_checks table (For developer monitoring)
+CREATE TABLE IF NOT EXISTS tone_checks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  message_count INTEGER,
+  response_length INTEGER,
+  has_tamil_content BOOLEAN,
+  has_devotional_tone BOOLEAN,
+  has_question BOOLEAN,
+  has_comfort BOOLEAN,
+  response_word_count INTEGER,
+  adherence_score INTEGER
+);
+
 -- Note: We removed the foreign key constraint to users table to allow anonymous chats.
 
 -- Create indexes
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX idx_conversations_created_at ON conversations(created_at);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_feedback_user_id ON feedback(user_id);
 
 -- DISABLE RLS completely (simplest for testing)
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tone_checks DISABLE ROW LEVEL SECURITY;
 
 -- Grant permissions to anon and authenticated roles
 GRANT ALL ON users TO anon, authenticated;
 GRANT ALL ON conversations TO anon, authenticated;
-
+GRANT ALL ON feedback TO anon, authenticated;
+GRANT ALL ON tone_checks TO anon, authenticated;
