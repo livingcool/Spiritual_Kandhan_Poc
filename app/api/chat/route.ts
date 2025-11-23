@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
 
 const SYSTEM_INSTRUCTION = `
@@ -326,6 +326,24 @@ export async function POST(req: NextRequest) {
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
             systemInstruction: SYSTEM_INSTRUCTION,
+            safetySettings: [
+                {
+                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+            ],
             generationConfig: {
                 temperature: 0.55, // Sacred consistency (0.45-0.65 range)
                 maxOutputTokens: 600, // Medium-long responses (400-600)
@@ -353,7 +371,13 @@ export async function POST(req: NextRequest) {
 
         const result = await chat.sendMessage(message);
         const response = await result.response;
-        const text = response.text();
+        let text = response.text();
+
+        // Fallback if text is empty (e.g. safety block that wasn't caught)
+        if (!text) {
+            console.warn('Empty response from Gemini. Possible safety block or error.');
+            text = "மகனே... என் மனம் உன்னை கேட்கிறது, ஆனால் வார்த்தைகள் வரவில்லை... மீண்டும் சொல்...";
+        }
 
         // Developer tone-check: Perform after 2nd model reply
         const modelMessageCount = history.filter((msg: any) => msg.role === 'model').length + 1;
