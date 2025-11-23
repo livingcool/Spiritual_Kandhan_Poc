@@ -32,30 +32,29 @@ export default function ChatInterface() {
     // Language State
     const [language, setLanguage] = useState<'tamil' | 'english'>('tamil');
 
-    // Scroll Logic
+    // Scroll Logic - FIXED
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
     const scrollToBottom = () => {
-        if (shouldAutoScroll) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handleScroll = () => {
         if (chatContainerRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+            const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
             setShouldAutoScroll(isAtBottom);
         }
     };
 
     useEffect(() => {
-        scrollToBottom();
+        if (shouldAutoScroll) {
+            scrollToBottom();
+        }
     }, [messages, shouldAutoScroll]);
 
     // Initialize User ID and Check Consent
     useEffect(() => {
-        // Generate random ID if not exists
         let storedUserId = localStorage.getItem('kandhan_user_id');
         if (!storedUserId) {
             storedUserId = `user_${Math.random().toString(36).substr(2, 9)}`;
@@ -64,7 +63,6 @@ export default function ChatInterface() {
         setUserId(storedUserId);
         console.log('🆔 User ID:', storedUserId);
 
-        // Check if consent was already given
         const storedConsent = localStorage.getItem('kandhan_consent_given');
         if (storedConsent === 'true') {
             setIsRecording(true);
@@ -139,9 +137,6 @@ export default function ChatInterface() {
     useEffect(() => {
         const fetchStarter = async () => {
             if (showConsent) return;
-
-            // Only fetch/refresh starter if we haven't started OR if it's just the initial greeting (refreshing language)
-            // If the user has sent a message (messages.length > 1), do NOT fetch a new starter.
             if (messages.length > 1) return;
 
             try {
@@ -177,7 +172,7 @@ export default function ChatInterface() {
         setInput('');
         setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
-        setShouldAutoScroll(true); // Force scroll to bottom on new message
+        setShouldAutoScroll(true);
 
         try {
             const response = await fetch('/api/chat', {
@@ -202,7 +197,6 @@ export default function ChatInterface() {
             let done = false;
             let accumulatedResponse = '';
 
-            // Add an empty model message to start streaming into
             setMessages((prev) => [...prev, { role: 'model', content: '' }]);
 
             while (!done) {
@@ -224,9 +218,8 @@ export default function ChatInterface() {
                 }
             }
 
-            // After streaming is complete, save to DB
             await logConversation(userMessage, accumulatedResponse);
-            await saveConversationToSupabase(userMessage, accumulatedResponse, {}); // Token usage not available in stream yet
+            await saveConversationToSupabase(userMessage, accumulatedResponse, {});
 
         } catch (error) {
             console.error('Error sending message:', error);
@@ -257,7 +250,6 @@ export default function ChatInterface() {
             setFeedbackSubmitted(true);
             setTimeout(() => {
                 setShowFeedback(false);
-                // Optional: Reset chat or redirect
             }, 2000);
         } catch (error) {
             console.error('Error submitting feedback:', error);
@@ -266,10 +258,10 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-[85vh] max-w-4xl mx-auto bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/5 overflow-hidden relative">
+        <div className="flex flex-col h-screen max-w-4xl mx-auto bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/5 overflow-hidden relative">
 
-            {/* Header */}
-            <div className="bg-slate-900/40 backdrop-blur-md p-4 text-white flex items-center justify-between border-b border-white/5">
+            {/* Header - FIXED with flex-shrink-0 */}
+            <div className="bg-slate-900/40 backdrop-blur-md p-4 text-white flex items-center justify-between border-b border-white/5 flex-shrink-0">
                 <div className="flex items-center">
                     <Sparkles className="w-5 h-5 mr-3 text-amber-200/60" />
                     <div>
@@ -303,7 +295,7 @@ export default function ChatInterface() {
                 </div>
             </div>
 
-            {/* Chat Area */}
+            {/* Chat Area - FIXED scrolling */}
             <div
                 ref={chatContainerRef}
                 onScroll={handleScroll}
@@ -376,26 +368,32 @@ export default function ChatInterface() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <form onSubmit={handleSubmit} className="p-6 bg-slate-900/40 backdrop-blur-md border-t border-white/5">
+            {/* Input Area - FIXED with flex-shrink-0 */}
+            <div className="p-6 bg-slate-900/40 backdrop-blur-md border-t border-white/5 flex-shrink-0">
                 <div className="relative flex items-center">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(e);
+                            }
+                        }}
                         placeholder={language === 'tamil' ? "உங்கள் எண்ணங்களைப் பகிருங்கள்..." : "Share your thoughts..."}
                         className="w-full bg-slate-800/50 backdrop-blur-sm text-amber-50 placeholder-amber-200/20 rounded-xl py-4 pl-6 pr-14 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:bg-slate-800/70 transition-all border border-white/5 font-light"
                         disabled={isLoading}
                     />
                     <button
-                        type="submit"
+                        onClick={handleSubmit}
                         disabled={!input.trim() || isLoading}
                         className="absolute right-3 p-2.5 bg-amber-600/80 text-white rounded-lg hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                         <Send className="w-4 h-4" />
                     </button>
                 </div>
-            </form>
+            </div>
 
             {/* Consent Modal */}
             <AnimatePresence>

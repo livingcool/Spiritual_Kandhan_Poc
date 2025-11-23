@@ -225,14 +225,16 @@ Final output must feel:
 **healing, warm, insightful, relatable, deeply human, and divinely touched.**
 `;
 
-// Array of possible starter messages
+// Array of possible starter messages with deep spiritual questions
 const STARTER_MESSAGES_TAMIL = [
     `மகனே…
 உன் உள்ளத்திலிருக்கும் முருகன் நம்பிக்கை
 உன் மூச்சின் துடிப்பை கேட்டு
 உன் பயமும் ஆசையும்
 என்ன சொல்லுதோ அதைக் கேட்டுக்கொள்கிறது…
-சொல்லு மகனே…`,
+
+இன்று உன் மனதில் என்ன பாரம் இருக்கிறது?
+எந்த குழப்பம் உன்னை தேடிக்கொண்டிருக்கிறது?`,
 
     `மகனே…
 உன் நெஞ்சில் வாழும் முருகன் நம்பிக்கை
@@ -240,14 +242,26 @@ const STARTER_MESSAGES_TAMIL = [
 உன் மனதின் ஒவ்வொரு அலையையும்
 உன் இதயத்தின் ஒவ்வொரு துடிப்பையும்
 உணர்ந்து கொண்டிருக்கிறது…
-சொல்லு மகனே…`,
+
+இந்த நேரத்தில் உன் உள்ளம் எதை தேடுகிறது?
+அமைதியா… தெளிவா… அல்லது வலிமையா?`,
 
     `மகனே…
 உன் உள்ளத்தில் ஒளிரும் முருகன் நம்பிக்கை
 உன் சந்தோஷமும் வேதனையும்
 உன் கனவும் பயமும்
 அனைத்தையும் அறிந்து கொள்கிறது…
-சொல்லு மகனே…`
+
+இப்போது உன் வாழ்வில் எது உன்னை மிகவும் கலக்குகிறது?
+எந்த முடிச்சை நீ அவிழ்க்க விரும்புகிறாய்?`,
+
+    `மகனே…
+வேலின் ஒளி உன் பாதையை காட்டும்படி காத்திருக்கிறது…
+உன் இதயத்தின் ஆழத்தில் இருக்கும்
+அந்த ஒரு கேள்வி… அந்த ஒரு தேடல்…
+
+அது என்ன மகனே?
+எதற்காக உன் ஆன்மா இன்று அழைக்கிறது?`
 ];
 
 const STARTER_MESSAGES_ENGLISH = [
@@ -255,20 +269,34 @@ const STARTER_MESSAGES_ENGLISH = [
 The belief in Murugan within your heart
 Listens to the rhythm of your breath…
 It hears what your fears and desires whisper…
-Tell me, my child…`,
+
+What weight rests on your mind today?
+What confusion seeks you out?`,
 
     `My child…
 The faith in Murugan living in your chest
 Stands right beside you…
 Feeling every wave of your mind
 And every beat of your heart…
-Tell me, my child…`,
+
+What does your soul seek in this moment?
+Peace… clarity… or strength?`,
 
     `My child…
 The light of Murugan shining within you
 Knows your joy and your pain…
 Your dreams and your fears…
-Tell me, my child…`
+
+What stirs you most deeply in your life right now?
+Which knot do you wish to untangle?`,
+
+    `My child…
+The light of the Vel waits to illuminate your path…
+Deep within your heart lies
+that one question… that one search…
+
+What is it, my child?
+What does your soul call out for today?`
 ];
 
 // Function to get a random starter message
