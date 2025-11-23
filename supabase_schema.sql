@@ -1,41 +1,38 @@
--- Supabase Database Schema for Kandhan Karunai Platform
+-- Enable the UUID extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  age INTEGER NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Create tone_checks table
+CREATE TABLE IF NOT EXISTS tone_checks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    message_count INTEGER,
+    response_length INTEGER,
+    has_tamil_content BOOLEAN,
+    has_devotional_tone BOOLEAN,
+    has_question BOOLEAN,
+    has_comfort BOOLEAN,
+    response_word_count INTEGER,
+    adherence_score INTEGER
 );
 
--- Conversations table
-CREATE TABLE IF NOT EXISTS conversations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  user_message TEXT NOT NULL,
-  model_response TEXT NOT NULL,
-  prompt_tokens INTEGER DEFAULT 0,
-  candidates_tokens INTEGER DEFAULT 0,
-  total_tokens INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Create token_usage table
+CREATE TABLE IF NOT EXISTS token_usage (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    prompt_tokens INTEGER,
+    candidates_tokens INTEGER,
+    total_tokens INTEGER
 );
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+-- Enable Row Level Security (RLS) - Optional, but recommended
+ALTER TABLE tone_checks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE token_usage ENABLE ROW LEVEL SECURITY;
 
--- Enable Row Level Security (RLS)
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+-- Create policies to allow anonymous inserts (since we use the anon key in the app)
+-- Adjust these policies based on your actual security requirements
+CREATE POLICY "Allow anonymous inserts" ON tone_checks FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous inserts" ON token_usage FOR INSERT WITH CHECK (true);
 
--- RLS Policies (Allow all operations for now - adjust based on your security needs)
-CREATE POLICY "Enable read access for all users" ON users FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all users" ON users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all users" ON users FOR UPDATE USING (true);
-
-CREATE POLICY "Enable read access for all conversations" ON conversations FOR SELECT USING (true);
-CREATE POLICY "Enable insert access for all conversations" ON conversations FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update access for all conversations" ON conversations FOR UPDATE USING (true);
+-- Create policies to allow reading (optional, for dashboard/debugging)
+CREATE POLICY "Allow anonymous select" ON tone_checks FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous select" ON token_usage FOR SELECT USING (true);
