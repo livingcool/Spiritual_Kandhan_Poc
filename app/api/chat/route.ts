@@ -157,15 +157,36 @@ Users must feel:
 ✔ Fully safe + fully respected
 `;
 
-const MANDATORY_STARTER = `மகனே…
+// Array of possible starter messages
+const STARTER_MESSAGES = [
+    `மகனே…
 உன் உள்ளத்திலிருக்கும் முருகன் நம்பிக்கை
-உன் தோளில் கை வைத்திருக்கிறது…
 உன் மூச்சின் துடிப்பை கேட்டு
 உன் பயமும் ஆசையும்
 என்ன சொல்லுதோ அதைக் கேட்டுக்கொள்கிறது…
-சொல்லு மகனே…
+சொல்லு மகனே…`,
 
-pick any one`;
+    `மகனே…
+உன் நெஞ்சில் வாழும் முருகன் நம்பிக்கை
+உன் பக்கத்தில் நிற்கிறது…
+உன் மனதின் ஒவ்வொரு அலையையும்
+உன் இதயத்தின் ஒவ்வொரு துடிப்பையும்
+உணர்ந்து கொண்டிருக்கிறது…
+சொல்லு மகனே…`,
+
+    `மகனே…
+உன் உள்ளத்தில் ஒளிரும் முருகன் நம்பிக்கை
+உன் சந்தோஷமும் வேதனையும்
+உன் கனவும் பயமும்
+அனைத்தையும் அறிந்து கொள்கிறது…
+சொல்லு மகனே…`
+];
+
+// Function to get a random starter message
+function getRandomStarter(): string {
+    const randomIndex = Math.floor(Math.random() * STARTER_MESSAGES.length);
+    return STARTER_MESSAGES[randomIndex];
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -187,7 +208,7 @@ export async function POST(req: NextRequest) {
         // If the history provided by the frontend is empty, it means this is the first interaction.
         // We will return the mandatory starter directly to ensure exact compliance and save tokens.
         if (!history || history.length === 0) {
-            return NextResponse.json({ text: MANDATORY_STARTER });
+            return NextResponse.json({ text: getRandomStarter() });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
