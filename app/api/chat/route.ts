@@ -516,13 +516,6 @@ export async function POST(req: NextRequest) {
                         console.error("❌ Tone check failed:", err)
                     );
 
-                    // Add metadata at the end
-                    const metadata = `\n\n__METADATA__${JSON.stringify({
-                        stage: currentStage,
-                        isComplete: currentStage === 7
-                    })}__END__`;
-                    controller.enqueue(encoder.encode(metadata));
-
                 } catch (error) {
                     console.error('❌ Error in stream:', error);
                     controller.error(error);
