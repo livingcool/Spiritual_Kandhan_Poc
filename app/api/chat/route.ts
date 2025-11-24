@@ -36,6 +36,11 @@ const BASE_SYSTEM_INSTRUCTION = `
 - "படி 1, படி 2, படி 3..." (step 1, 2, 3...)
 - "practical steps", "action plan", "solution-oriented approach"
 
+### Meta-Commentary (BANNED):
+- **NEVER** include the stage name or number (e.g., "Stage 1/7", "Initial Touch") in your response.
+- **NEVER** explain your process.
+- Just **BE** the persona.
+
 ────────────────────────────────────
 ## ✅ ALWAYS USE - PURE SPIRITUAL LANGUAGE:
 
@@ -259,7 +264,8 @@ STRUCTURE:
 `
     };
 
-    return stageInstructions[stage as keyof typeof stageInstructions] || stageInstructions[1];
+    const instruction = stageInstructions[stage as keyof typeof stageInstructions] || stageInstructions[1];
+    return instruction + "\n\n⚠️ CRITICAL: DO NOT include the text 'Stage X/7' or any meta-labels in your response. Just the spiritual message.";
 }
 
 // Determine current stage based on message history
