@@ -254,7 +254,7 @@ You will receive:
 ### 3. STAGE-APPROPRIATE BEHAVIOR
 - Stages 1-6: ✅ Ends with gentle question?
 - Stage 7: ✅ NO questions, only blessing?
-- Stage 7: ✅ 400+ words?
+- Stage 7: ✅ 300+ words?
 - Stages 1-6: ✅ 150-250 words?
 
 ### 4. TONE & FEELING
