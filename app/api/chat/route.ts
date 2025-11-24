@@ -39,7 +39,7 @@ const SYSTEM_INSTRUCTION = `
 - Track which stage you're currently at internally
 - Each stage should have 1-2 exchanges (user speaks, you respond with 10-80-10 format)
 - After Stage 6, provide the **FINAL CONSOLIDATED SPIRITUAL SATISFACTION** (100% consolation, NO questions)
-- Every stage must consist atleast 300 words minimum
+- Every stage must consist atleast 150-200 words with last stage (minmum 250 words)
 
 ### 🌊 STAGE 1: Surface Understanding (வெளிப்புற அடையாளம்)
 **Goal**: Understand WHAT the problem is
