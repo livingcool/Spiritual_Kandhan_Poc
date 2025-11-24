@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, Mic, MicOff, X, Star, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import ConsentModal from './ConsentModal';
 
 type Message = {
     role: 'user' | 'model';
@@ -18,6 +19,9 @@ export default function ChatInterface() {
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const [hasStarted, setHasStarted] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
+    const [sessionId, setSessionId] = useState<string>('');
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [currentStage, setCurrentStage] = useState<number>(0);
 
     // Recording & Consent State
     const [showConsent, setShowConsent] = useState(true);
@@ -35,8 +39,9 @@ export default function ChatInterface() {
     // Language State
     const [language, setLanguage] = useState<'tamil' | 'english'>('tamil');
 
-    // Scroll Logic - FIXED
+    // Scroll Logic
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const [isStreamingResponse, setIsStreamingResponse] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,20 +56,26 @@ export default function ChatInterface() {
     };
 
     useEffect(() => {
-        if (shouldAutoScroll) {
+        // Only auto-scroll if streaming OR user is at bottom
+        if (shouldAutoScroll && !isStreamingResponse) {
             scrollToBottom();
         }
-    }, [messages, shouldAutoScroll]);
+    }, [messages, shouldAutoScroll, isStreamingResponse]);
 
-    // Initialize User ID and Check Consent
+    // Initialize User ID, Session ID and Check Consent
     useEffect(() => {
         let storedUserId = localStorage.getItem('kandhan_user_id');
         if (!storedUserId) {
-            storedUserId = `user_${Math.random().toString(36).substr(2, 9)}`;
+            storedUserId = `user_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
             localStorage.setItem('kandhan_user_id', storedUserId);
         }
         setUserId(storedUserId);
+
+        // Generate unique session ID for this conversation
+        const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        setSessionId(newSessionId);
         console.log('🆔 User ID:', storedUserId);
+        console.log('📝 Session ID:', newSessionId);
 
         const storedConsent = localStorage.getItem('kandhan_consent_given');
         if (storedConsent === 'true') {
@@ -76,10 +87,35 @@ export default function ChatInterface() {
         }
     }, []);
 
-    const handleAcceptConsent = () => {
+    const handleAcceptConsent = async () => {
         setIsRecording(true);
         setShowConsent(false);
         localStorage.setItem('kandhan_consent_given', 'true');
+
+        // Create conversation record in new structure
+        if (userId && sessionId) {
+            try {
+                const { data, error } = await supabase
+                    .from('conversations_new')
+                    .insert({
+                        session_id: sessionId,
+                        user_id: userId,
+                        language: language,
+                        current_stage: 0,
+                        is_complete: false,
+                    })
+                    .select('id')
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setConversationId(data.id);
+                    console.log('✅ Created conversation:', data.id);
+                }
+            } catch (error) {
+                console.error('❌ Failed to create conversation:', error);
+            }
+        }
     };
 
     const handleDeclineConsent = () => {
@@ -94,16 +130,25 @@ export default function ChatInterface() {
         localStorage.setItem('kandhan_consent_given', String(newState));
     };
 
-    const toggleLanguage = () => {
-        setLanguage(prev => prev === 'tamil' ? 'english' : 'tamil');
+    const toggleLanguage = async () => {
+        const newLang = language === 'tamil' ? 'english' : 'tamil';
+        setLanguage(newLang);
+
+        // Update conversation language
+        if (conversationId) {
+            await supabase
+                .from('conversations_new')
+                .update({ language: newLang })
+                .eq('id', conversationId);
+        }
     };
 
-    const saveConversationToSupabase = async (userMsg: string, modelMsg: string, tokenData: any) => {
+    // Save to OLD structure (for backward compatibility)
+    const saveToOldStructure = async (userMsg: string, modelMsg: string, tokenData: any) => {
         if (!isRecording || !userId) return;
 
-        console.log('💾 Saving conversation to Supabase...');
         try {
-            const { data, error } = await supabase.from('conversations').insert([{
+            await supabase.from('conversations').insert([{
                 user_id: userId,
                 user_message: userMsg,
                 model_response: modelMsg,
@@ -111,13 +156,12 @@ export default function ChatInterface() {
                 candidates_tokens: tokenData?.candidatesTokens || 0,
                 total_tokens: tokenData?.totalTokens || 0,
             }]);
-
-            if (error) throw error;
         } catch (error: any) {
-            console.error('❌ Failed to save conversation:', error.message);
+            console.error('❌ Failed to save to old structure:', error.message);
         }
     };
 
+    // Save message feedback (per-message thumbs up/down)
     const saveMessageFeedback = async (messageIndex: number, feedbackType: 'up' | 'down') => {
         if (!userId) return;
 
@@ -131,26 +175,9 @@ export default function ChatInterface() {
                 feedback_type: feedbackType,
                 timestamp: new Date().toISOString()
             }]);
+            console.log('✅ Saved message feedback');
         } catch (error) {
-            console.error('Failed to save message feedback:', error);
-        }
-    };
-
-    const logConversation = async (userMsg: string, modelMsg: string) => {
-        if (!isRecording) return;
-
-        try {
-            await fetch('/api/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userMessage: userMsg,
-                    modelResponse: modelMsg,
-                    timestamp: new Date().toISOString(),
-                }),
-            });
-        } catch (error) {
-            console.error('Failed to log conversation:', error);
+            console.error('❌ Failed to save message feedback:', error);
         }
     };
 
@@ -165,7 +192,13 @@ export default function ChatInterface() {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: '', history: [], language }),
+                    body: JSON.stringify({
+                        message: '',
+                        history: [],
+                        language,
+                        sessionId,
+                        userId
+                    }),
                 });
 
                 if (!response.ok) throw new Error('Failed to fetch starter');
@@ -174,6 +207,7 @@ export default function ChatInterface() {
                 if (data.text) {
                     setMessages([{ role: 'model', content: data.text }]);
                     setHasStarted(true);
+                    setCurrentStage(data.stage || 0);
                 }
             } catch (error) {
                 console.error('Error fetching starter:', error);
@@ -190,10 +224,16 @@ export default function ChatInterface() {
         if (!input.trim() || isLoading) return;
 
         const userMessage = input.trim();
+        const startTime = Date.now();
+
         setInput('');
         setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
         setIsLoading(true);
-        setShouldAutoScroll(true);
+        setIsStreamingResponse(false); // Don't auto-scroll during user input
+
+        // Small delay before starting stream to let user see their message
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setIsStreamingResponse(true);
 
         try {
             const response = await fetch('/api/chat', {
@@ -202,7 +242,9 @@ export default function ChatInterface() {
                 body: JSON.stringify({
                     message: userMessage,
                     history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
-                    language: language
+                    language: language,
+                    sessionId: sessionId,
+                    userId: userId
                 }),
             });
 
@@ -217,6 +259,8 @@ export default function ChatInterface() {
             const decoder = new TextDecoder();
             let done = false;
             let accumulatedResponse = '';
+            let metadataReceived = false;
+            let responseMetadata: any = {};
 
             setMessages((prev) => [...prev, { role: 'model', content: '' }]);
 
@@ -226,7 +270,25 @@ export default function ChatInterface() {
 
                 if (value) {
                     const chunkValue = decoder.decode(value, { stream: true });
-                    accumulatedResponse += chunkValue;
+
+                    // Check for metadata at the end
+                    if (chunkValue.includes('__METADATA__')) {
+                        const parts = chunkValue.split('__METADATA__');
+                        accumulatedResponse += parts[0];
+
+                        if (parts[1]) {
+                            const metaPart = parts[1].replace('__END__', '');
+                            try {
+                                responseMetadata = JSON.parse(metaPart);
+                                metadataReceived = true;
+                                setCurrentStage(responseMetadata.stage || 0);
+                            } catch (e) {
+                                console.error('Failed to parse metadata:', e);
+                            }
+                        }
+                    } else {
+                        accumulatedResponse += chunkValue;
+                    }
 
                     setMessages((prev) => {
                         const newMessages = [...prev];
@@ -239,8 +301,16 @@ export default function ChatInterface() {
                 }
             }
 
-            await logConversation(userMessage, accumulatedResponse);
-            await saveConversationToSupabase(userMessage, accumulatedResponse, {});
+            const generationTime = Date.now() - startTime;
+
+            // Save to old structure for backward compatibility
+            await saveToOldStructure(userMessage, accumulatedResponse, {});
+
+            console.log('📊 Response completed', {
+                stage: responseMetadata.stage,
+                isComplete: responseMetadata.isComplete,
+                generationTime: generationTime
+            });
 
         } catch (error) {
             console.error('Error sending message:', error);
@@ -253,7 +323,18 @@ export default function ChatInterface() {
         }
     };
 
-    const handleEndChat = () => {
+    const handleEndChat = async () => {
+        // Mark conversation as ended
+        if (conversationId) {
+            await supabase
+                .from('conversations_new')
+                .update({
+                    ended_at: new Date().toISOString(),
+                    is_complete: currentStage === 7
+                })
+                .eq('id', conversationId);
+        }
+
         setShowFeedback(true);
     };
 
@@ -261,6 +342,7 @@ export default function ChatInterface() {
         if (!userId) return;
 
         try {
+            // Save to old feedback table
             const { error } = await supabase.from('feedback').insert([{
                 user_id: userId,
                 rating,
@@ -268,9 +350,15 @@ export default function ChatInterface() {
             }]);
 
             if (error) throw error;
+
             setFeedbackSubmitted(true);
+            console.log('✅ Feedback submitted');
+
             setTimeout(() => {
                 setShowFeedback(false);
+                // Optionally reset the chat
+                setMessages([]);
+                setHasStarted(false);
             }, 2000);
         } catch (error) {
             console.error('Error submitting feedback:', error);
@@ -281,13 +369,15 @@ export default function ChatInterface() {
     return (
         <div className="flex flex-col h-screen max-w-4xl mx-auto bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/5 overflow-hidden relative">
 
-            {/* Header - FIXED with flex-shrink-0 */}
+            {/* Header */}
             <div className="bg-slate-900/40 backdrop-blur-md p-4 text-white flex items-center justify-between border-b border-white/5 flex-shrink-0">
                 <div className="flex items-center">
                     <Sparkles className="w-5 h-5 mr-3 text-amber-200/60" />
                     <div>
                         <h2 className="text-lg font-semibold tracking-wider text-amber-100/90">Ulloli</h2>
-                        <div className="text-[10px] text-amber-200/40 font-medium tracking-[0.2em] uppercase">Divine AI Companion</div>
+                        <div className="text-[10px] text-amber-200/40 font-medium tracking-[0.2em] uppercase">
+                            Divine AI Companion {currentStage > 0 && `• Stage ${currentStage}/7`}
+                        </div>
                     </div>
                 </div>
 
@@ -316,7 +406,7 @@ export default function ChatInterface() {
                 </div>
             </div>
 
-            {/* Chat Area - FIXED scrolling */}
+            {/* Chat Area */}
             <div
                 ref={chatContainerRef}
                 onScroll={handleScroll}
@@ -344,8 +434,8 @@ export default function ChatInterface() {
                                 <div className="flex flex-col max-w-[85%]">
                                     <div
                                         className={`rounded-2xl text-base leading-relaxed shadow-sm relative ${msg.role === 'user'
-                                                ? 'bg-gradient-to-br from-amber-600 to-orange-600 text-white rounded-tr-none p-5 backdrop-blur-sm shadow-amber-900/20'
-                                                : 'bg-slate-800/60 text-amber-50/90 rounded-tl-none border border-amber-500/10 p-5 backdrop-blur-sm'
+                                            ? 'bg-gradient-to-br from-amber-600 to-orange-600 text-white rounded-tr-none p-5 backdrop-blur-sm shadow-amber-900/20'
+                                            : 'bg-slate-800/60 text-amber-50/90 rounded-tl-none border border-amber-500/10 p-5 backdrop-blur-sm'
                                             }`}
                                         style={{
                                             wordBreak: 'break-word',
@@ -381,8 +471,8 @@ export default function ChatInterface() {
                                             <button
                                                 onClick={() => saveMessageFeedback(index, 'up')}
                                                 className={`p-1.5 rounded-lg transition-all ${messageFeedback[index] === 'up'
-                                                        ? 'bg-green-500/20 text-green-400'
-                                                        : 'bg-slate-800/40 text-slate-400 hover:bg-slate-700/40 hover:text-green-400'
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-slate-800/40 text-slate-400 hover:bg-slate-700/40 hover:text-green-400'
                                                     }`}
                                                 title="Helpful response"
                                             >
@@ -393,8 +483,8 @@ export default function ChatInterface() {
                                             <button
                                                 onClick={() => saveMessageFeedback(index, 'down')}
                                                 className={`p-1.5 rounded-lg transition-all ${messageFeedback[index] === 'down'
-                                                        ? 'bg-red-500/20 text-red-400'
-                                                        : 'bg-slate-800/40 text-slate-400 hover:bg-slate-700/40 hover:text-red-400'
+                                                    ? 'bg-red-500/20 text-red-400'
+                                                    : 'bg-slate-800/40 text-slate-400 hover:bg-slate-700/40 hover:text-red-400'
                                                     }`}
                                                 title="Needs improvement"
                                             >
@@ -426,7 +516,7 @@ export default function ChatInterface() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area - FIXED with flex-shrink-0 */}
+            {/* Input Area */}
             <div className="p-6 bg-slate-900/40 backdrop-blur-md border-t border-white/5 flex-shrink-0">
                 <div className="relative flex items-center">
                     <input
@@ -454,40 +544,11 @@ export default function ChatInterface() {
             </div>
 
             {/* Consent Modal */}
-            <AnimatePresence>
-                {showConsent && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                    >
-                        <div className="bg-slate-900 border border-amber-500/20 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-                            <h3 className="text-xl font-semibold text-amber-100 mb-4">Data Collection Consent</h3>
-                            <p className="text-slate-300 mb-6 leading-relaxed">
-                                To help improve our spiritual guidance model, we would like to record this session.
-                                Your data will be used solely for model training and improvement.
-                                <br /><br />
-                                Do you consent to having this conversation recorded?
-                            </p>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={handleDeclineConsent}
-                                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors border border-white/5"
-                                >
-                                    No, Don't Record
-                                </button>
-                                <button
-                                    onClick={handleAcceptConsent}
-                                    className="flex-1 px-4 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors shadow-lg shadow-amber-900/20"
-                                >
-                                    Yes, I Consent
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <ConsentModal
+                isOpen={showConsent}
+                onAccept={handleAcceptConsent}
+                onDecline={handleDeclineConsent}
+            />
 
             {/* Feedback Modal */}
             <AnimatePresence>
