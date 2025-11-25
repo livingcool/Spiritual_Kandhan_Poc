@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { supabase } from '@/lib/supabase';
 
 // =======================
 // 🕉️ PURE SPIRITUAL SYSTEM INSTRUCTION - 100% CONSOLATION
@@ -102,6 +103,7 @@ Always include 1–2 Murugar symbols per response, but not in every line and no 
 ஆறுமுகம் (Six Faces)
 
 ஓலி (Sacred Sound)
+
 Use these as scene elements, not repeated labels. Prefer richer imagery instead of repeating the word “arul” excessively.
 
 NEW: DYNAMIC DIVINE SCENES (Prevents repetition)
@@ -133,6 +135,7 @@ Paragraph 1: Realm A
 Paragraph 2: Realm B (different from A)
 
 Paragraph 3: Realm C (different from A and B if possible)
+
 This ensures fresh scenes and reduces repetition.
 
 REDUCE “ARUL” REPETITION
@@ -172,6 +175,7 @@ His hand resting gently on their shoulder or head.
 His quiet gaze meeting theirs.
 
 The faint sound of a vel or conch nearby.
+
 Write this as an image, not an explanation.
 
 SENTENCE VARIATION (No repetition)
@@ -221,6 +225,7 @@ psychological / clinical / analytical terms (explicitly avoid words like “ther
 Academic framing: “research shows”, “studies indicate”, “evidence suggests”
 
 Any phrasing that directs, instructs, or prescribes.
+
 If such content is required (e.g., self-harm), skip stages and follow crisis procedure: offer immediate spiritual comfort and suggest professional help with sensitive referral (but otherwise avoid clinical phrasing).
 
 CRISIS RESPONSE (If user expresses self-harm or suicide)
@@ -352,7 +357,7 @@ function detectCrisisKeywords(message: string): boolean {
     return CRISIS_KEYWORDS.some(keyword => lowerMessage.includes(keyword));
 }
 
-// Tone Check (Developer Debug)
+// Tone Check (Developer Debug & DB Log)
 async function performToneCheck(text: string, count: number): Promise<void> {
     console.log(`[TONE CHECK] Message ${count} - Length: ${text.length}`);
 
@@ -383,6 +388,28 @@ async function performToneCheck(text: string, count: number): Promise<void> {
     }
 
     console.log(`[TONE CHECK] ✅ Spiritual: ${hasSpiritual}, Forbidden: ${hasForbidden}`);
+
+    // Log to Supabase
+    try {
+        const { error } = await supabase.from('tone_checks').insert({
+            message_count: count,
+            response_length: text.length,
+            has_tamil_content: /[\u0B80-\u0BFF]/.test(text), // Simple Tamil char check
+            has_devotional_tone: hasSpiritual,
+            has_question: text.includes('?'),
+            has_comfort: !hasForbidden, // Proxy for now
+            response_word_count: text.split(/\s+/).length,
+            adherence_score: (hasSpiritual ? 50 : 0) + (!hasForbidden ? 50 : 0)
+        });
+
+        if (error) {
+            console.error('❌ Error logging tone check to Supabase:', error);
+        } else {
+            console.log('✅ Tone check saved to Supabase');
+        }
+    } catch (err) {
+        console.error('❌ Exception logging tone check:', err);
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -450,10 +477,11 @@ export async function POST(req: NextRequest) {
                 },
             ],
             generationConfig: {
-                temperature: 1.25,     // more imaginative, deeper variation
-                maxOutputTokens: 2500, // gives room for poetic scene lines
-                topP: 0.92,            // slightly narrower for controlled beauty
-                topK: 80,              // higher K → more diverse word choices
+                temperature: 1.25,
+                maxOutputTokens: 2500,
+                topP: 0.92,
+                topK: 80,
+                frequencyPenalty: 0.5,
             },
         });
 
@@ -510,6 +538,28 @@ export async function POST(req: NextRequest) {
                         performToneCheck(fullText, modelMessageCount).catch(err =>
                             console.error("❌ Tone check failed:", err)
                         );
+                    }
+
+                    // Log Token Usage
+                    try {
+                        const response = await result.response;
+                        const usage = response.usageMetadata;
+
+                        if (usage) {
+                            const { error } = await supabase.from('token_usage').insert({
+                                prompt_tokens: usage.promptTokenCount,
+                                candidates_tokens: usage.candidatesTokenCount,
+                                total_tokens: usage.totalTokenCount
+                            });
+
+                            if (error) {
+                                console.error('❌ Error logging token usage to Supabase:', error);
+                            } else {
+                                console.log('✅ Token usage saved to Supabase:', usage);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('❌ Error fetching/logging usage metadata:', err);
                     }
 
                 } catch (error) {
