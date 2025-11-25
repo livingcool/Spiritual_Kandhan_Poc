@@ -99,7 +99,7 @@ export default function ChatInterface() {
         if (userId && sessionId) {
             try {
                 const { data, error } = await supabase
-                    .from('conversations_new')
+                    .from('conversations')
                     .insert({
                         session_id: sessionId,
                         user_id: userId,
@@ -140,18 +140,18 @@ export default function ChatInterface() {
         // Update conversation language
         if (conversationId) {
             await supabase
-                .from('conversations_new')
+                .from('conversations')
                 .update({ language: newLang })
                 .eq('id', conversationId);
         }
     };
 
-    // Save to OLD structure (for backward compatibility)
+    // Save to OLD structure (for backward compatibility) - NOW LEGACY
     const saveToOldStructure = async (userMsg: string, modelMsg: string, tokenData: any) => {
         if (!isRecording || !userId) return;
 
         try {
-            await supabase.from('conversations').insert([{
+            await supabase.from('legacy_message_logs').insert([{
                 user_id: userId,
                 user_message: userMsg,
                 model_response: modelMsg,
@@ -181,6 +181,22 @@ export default function ChatInterface() {
             console.log('✅ Saved message feedback');
         } catch (error) {
             console.error('❌ Failed to save message feedback:', error);
+        }
+    };
+
+    // Save individual message to new structure
+    const saveMessage = async (role: 'user' | 'model', content: string, stage: number = 0) => {
+        if (!conversationId) return;
+
+        try {
+            await supabase.from('messages').insert([{
+                conversation_id: conversationId,
+                role,
+                content,
+                stage
+            }]);
+        } catch (error) {
+            console.error('❌ Failed to save message:', error);
         }
     };
 
@@ -231,6 +247,10 @@ export default function ChatInterface() {
 
         setInput('');
         setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+
+        // Save user message
+        saveMessage('user', userMessage, currentStage);
+
         setIsLoading(true);
         setIsStreamingResponse(false); // Don't auto-scroll during user input
 
@@ -309,6 +329,9 @@ export default function ChatInterface() {
             // Save to old structure for backward compatibility
             await saveToOldStructure(userMessage, accumulatedResponse, {});
 
+            // Save model response to new structure
+            saveMessage('model', accumulatedResponse, responseMetadata.stage || currentStage);
+
             console.log('📊 Response completed', {
                 stage: responseMetadata.stage,
                 isComplete: responseMetadata.isComplete,
@@ -330,7 +353,7 @@ export default function ChatInterface() {
         // Mark conversation as ended
         if (conversationId) {
             await supabase
-                .from('conversations_new')
+                .from('conversations')
                 .update({
                     ended_at: new Date().toISOString(),
                     is_complete: currentStage === 7
