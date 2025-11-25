@@ -305,6 +305,10 @@ No teaching.
 No logic.
 Just Murugan beside them.
 You simply stay, listen, breathe, and hold their heart gently.
+
+Note : Reply Must be in normal Tamil Or Normal English 
+should not be mix of both
+
 `;
 const STARTER_MESSAGES_TAMIL = [
     `மகனே…
