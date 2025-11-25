@@ -724,7 +724,7 @@ export async function POST(req: NextRequest) {
                 maxOutputTokens: 2500,
                 topP: 0.92,
                 topK: 80,
-                frequencyPenalty: 0.5,
+
             },
         });
 
