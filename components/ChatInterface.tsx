@@ -267,7 +267,8 @@ export default function ChatInterface() {
                     history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
                     language: language,
                     sessionId: sessionId,
-                    userId: userId
+                    userId: userId,
+                    conversationId: conversationId
                 }),
             });
 

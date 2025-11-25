@@ -463,11 +463,25 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { message, history, language = 'tamil' } = body;
+        const { message, history, language = 'tamil', conversationId } = body;
 
         // First message - return starter
         if (!history || history.length === 0) {
             return NextResponse.json({ text: getRandomStarter(language) });
+        }
+
+        // Log User Message to Supabase (if conversationId exists)
+        if (conversationId) {
+            try {
+                await supabase.from('messages').insert({
+                    conversation_id: conversationId,
+                    role: 'user',
+                    content: message,
+                    stage: 0 // You might want to pass the actual stage if available, or default to 0
+                });
+            } catch (err) {
+                console.error('❌ Error logging user message:', err);
+            }
         }
 
         // Crisis Detection
@@ -520,7 +534,6 @@ export async function POST(req: NextRequest) {
                 maxOutputTokens: 2500,
                 topP: 0.92,
                 topK: 80,
-
             },
         });
 
@@ -577,6 +590,21 @@ export async function POST(req: NextRequest) {
                         performToneCheck(fullText, modelMessageCount).catch(err =>
                             console.error("❌ Tone check failed:", err)
                         );
+                    }
+
+                    // Log Model Response to Supabase
+                    if (conversationId) {
+                        try {
+                            await supabase.from('messages').insert({
+                                conversation_id: conversationId,
+                                role: 'model',
+                                content: fullText,
+                                stage: 0 // You might want to parse stage from metadata if available
+                            });
+                            console.log('✅ Model response saved to Supabase');
+                        } catch (err) {
+                            console.error('❌ Error logging model response:', err);
+                        }
                     }
 
                     // Log Token Usage
