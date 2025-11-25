@@ -84,3 +84,21 @@ CREATE POLICY "Allow public select feedback" ON feedback FOR SELECT USING (true)
 -- Create policies to allow reading (optional, for dashboard/debugging)
 CREATE POLICY "Allow anonymous select" ON tone_checks FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous select" ON token_usage FOR SELECT USING (true);
+
+-- Create unknown_feedback table
+CREATE TABLE IF NOT EXISTS unknown_feedback (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for unknown_feedback
+ALTER TABLE unknown_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Policy for inserting unknown_feedback (public)
+CREATE POLICY "Allow public insert unknown_feedback" ON unknown_feedback FOR INSERT WITH CHECK (true);
+
+-- Policy for reading unknown_feedback (anon)
+CREATE POLICY "Allow public select unknown_feedback" ON unknown_feedback FOR SELECT USING (true);
+

@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, Mic, MicOff, X, Star, Globe } from 'lucide-react';
+import { Send, Sparkles, Mic, MicOff, X, Star, Globe, MessageSquarePlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+
 import ConsentModal from './ConsentModal';
+import UnknownFeedbackModal from './UnknownFeedbackModal';
 
 type Message = {
     role: 'user' | 'model';
@@ -32,6 +34,7 @@ export default function ChatInterface() {
     const [rating, setRating] = useState(0);
     const [feedbackComment, setFeedbackComment] = useState('');
     const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+    const [showUnknownFeedback, setShowUnknownFeedback] = useState(false);
 
     // Per-message feedback tracking
     const [messageFeedback, setMessageFeedback] = useState<Record<number, 'up' | 'down'>>({});
@@ -361,8 +364,6 @@ export default function ChatInterface() {
                 setHasStarted(false);
             }, 2000);
         } catch (error) {
-            console.error('Error submitting feedback:', error);
-            alert('Failed to submit feedback. Please try again.');
         }
     };
 
@@ -382,6 +383,13 @@ export default function ChatInterface() {
                 </div>
 
                 <div className="flex items-center space-x-4">
+                    <button
+                        onClick={() => setShowUnknownFeedback(true)}
+                        className="p-2 rounded-full bg-slate-800/60 hover:bg-slate-700/60 text-amber-100/80 border border-white/10 transition-all"
+                        title="Share Feedback"
+                    >
+                        <MessageSquarePlus className="w-4 h-4" />
+                    </button>
                     <button
                         onClick={toggleLanguage}
                         className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700/60 text-xs text-amber-100/80 rounded-lg border border-white/10 transition-all"
@@ -548,6 +556,13 @@ export default function ChatInterface() {
                 isOpen={showConsent}
                 onAccept={handleAcceptConsent}
                 onDecline={handleDeclineConsent}
+            />
+
+            {/* Unknown Feedback Modal */}
+            <UnknownFeedbackModal
+                isOpen={showUnknownFeedback}
+                onClose={() => setShowUnknownFeedback(false)}
+                userId={userId}
             />
 
             {/* Feedback Modal */}
