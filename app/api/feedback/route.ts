@@ -19,7 +19,7 @@ export async function POST(req: Request) {
             .insert([
                 {
                     user_id: userId,
-                    content: content,
+                    feedback_text: content,
                 }
             ])
             .select()
